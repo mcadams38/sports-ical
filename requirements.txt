@@ -1,0 +1,41 @@
+from ics import Calendar, Event
+import requests
+from datetime import datetime
+from config import HEADERS
+
+TEAM_ID = 511       # Grenoble Foot 38
+LEAGUE_ID = 61      # Ligue 2
+SEASON = 2025       # adapter chaque saison
+
+url = "https://v3.football.api-sports.io/fixtures"
+params = {
+    "team": TEAM_ID,
+    "league": LEAGUE_ID,
+    "season": SEASON
+}
+
+response = requests.get(url, headers=HEADERS, params=params)
+fixtures = response.json()["response"]
+
+cal = Calendar()
+
+for match in fixtures:
+    event = Event()
+
+    home = match["teams"]["home"]["name"]
+    away = match["teams"]["away"]["name"]
+    date = match["fixture"]["date"]
+
+    event.name = f"{home} – {away}"
+    event.begin = datetime.fromisoformat(date.replace("Z", "+00:00"))
+    event.duration = {"hours": 2}
+
+    venue = match["fixture"]["venue"]
+    if venue:
+        event.location = venue["name"]
+
+    event.description = "Ligue 2 – GF38"
+    cal.events.add(event)
+
+with open("output/gf38.ics", "w", encoding="utf-8") as f:
+    f.writelines(cal)
